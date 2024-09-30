@@ -2,12 +2,17 @@ import sys
 import json
 import time
 import logging
+import numpy as np
 from awsgreengrasspubsubsdk.pubsub_client import AwsGreengrassPubSubSdkClient
 from awsgreengrasspubsubsdk.message_formatter import PubSubMessageFormatter
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# initialize data
+num_vehicles = 5
+max_co2_levels_by_vehicle = np.ones(num_vehicles) * -1
 class MyAwsGreengrassV2Component():
     def __init__(self):
         # initialize client
@@ -22,13 +27,36 @@ class MyAwsGreengrassV2Component():
         # Expose the client methods as class methods
         self.subscribe_to_topic  = self.client.subscribe_to_topic
 
-    def publish_message(self, protocol, message, topic=None):
+    def publish_message(self, message, topic=None):
         sdk_message = self.message_formatter.get_message(message=message)
-        self.client.publish_message('ipc_mqtt', sdk_message, topic=publish_topic)  # Publish using MQTT and IPC protocol
+        self.client.publish_message('ipc_mqtt', sdk_message, topic=topic)  # Publish using MQTT and IPC protocol
         return sdk_message
+    
     def message_handler(self, protocol, topic, message_id, status, route, message_payload):
-        logger.info(f"Received message on {topic}: {message_payload}")
-
+            # logger.info(f"Received message on {topic}: {message_payload}")
+            global max_co2_levels_by_vehicle
+            # {'device_id': '3', 'data': {'timestep_time': 2.0, 'vehicle_CO': 164.78,
+            #  'vehicle_CO2': 2624.72, 'vehicle_HC': 0.81, 'vehicle_NOx': 1.2, 
+            # 'vehicle_PMx': 0.07, 'vehicle_angle': 125.41, 'vehicle_eclass': 'HBEFA3/PC_G_EU4', 
+            # 'vehicle_electricity': 0.0, 'vehicle_fuel': 1.13, 'vehicle_id': 'veh3', 'vehicle_lane': '724636540#2_0',
+            #  'vehicle_noise': 55.94, 'vehicle_pos': 5.1, 'vehicle_route': '!veh3!var#1', 'vehicle_speed': 0.0, 
+            # 'vehicle_type': 'veh_passenger', 'vehicle_waiting': 0.0, 'vehicle_x': 26221.37, 'vehicle_y': 26484.93, 
+            # 'data_send_complete': False}}
+            # logger.info(f"Received message on {topic}: {message_payload}")
+            if route == "vehicle_data":
+                data_idx = message_payload["device_id"]
+                msg_data = message_payload["data"]
+                if msg_data["data_send_complete"]:
+                    message = {"device_id": data_idx, 
+                               "data": {"max_co2": max_co2_levels_by_vehicle[int(data_idx)]}}
+                    logger.info(f"Sending max CO2 level for vehicle {data_idx}: {message}")
+                    self.publish_message(message, topic="GGHelloWorld/outbox/vehicle"+str(data_idx))
+                else:
+                    if max_co2_levels_by_vehicle[int(data_idx)] < 0:
+                        max_co2_levels_by_vehicle[int(data_idx)] = msg_data["vehicle_CO2"]
+                    else:
+                        max_co2_levels_by_vehicle[int(data_idx)] = max(msg_data["vehicle_CO2"],
+                                                                   max_co2_levels_by_vehicle[int(data_idx)])
 
 if __name__ == "__main__":
     # define topics
@@ -49,12 +77,8 @@ if __name__ == "__main__":
     # "message": { "user_msg": "Hello World, from IoT CONSOLE" }
     # }
     client.subscribe_to_topic("ipc_mqtt", subscribe_topic)
-
-    try:
-        while True:
-            message = {"user_msg": "Hello World, from GreenGrassCore V2"}
-            sdk_message = client.publish_message('ipc_mqtt', message, topic=publish_topic)  # Publish using MQTT and IPC protocol
-            logger.info(f"Published sdk message to {publish_topic}: {sdk_message}")
-            time.sleep(5)
-    except Exception as e:
-        logger.error(f"Error running the component: {e}")
+    while True:
+        my_message = {"user_msg": "Hello World, from GreenGrassCore V2"}
+        sdk_message = client.publish_message(my_message, topic=publish_topic)
+        logger.info(f"Published sdk message to {publish_topic}: {sdk_message}")
+        time.sleep(10)
