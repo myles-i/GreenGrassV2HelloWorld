@@ -2,7 +2,7 @@
     "component": {
       "GreenGrassV2HelloWorld": {
         "author": "Myles Iribarne",
-        "version": "0.0.1",
+        "version": "0.0.3",
         "build": {
           "build_system": "zip"
         },

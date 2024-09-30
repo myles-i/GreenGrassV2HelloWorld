@@ -8,35 +8,27 @@ from awsgreengrasspubsubsdk.pubsub_client import AwsGreengrassPubSubSdkClient
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-class GreenGrassV2HelloWorld:
-    def __init__(self, config):
-        self.publish_topic = config['PublishTopic']
-        self.subscribe_topic = config['SubscribeTopic']
-        
-        logger.info(f"Publishing to topic: {self.publish_topic}")
-        logger.info(f"Subscribing to topic: {self.subscribe_topic}")
-        
-        self.client = AwsGreengrassPubSubSdkClient(base_topic="GGHelloWorld", default_message_handler=self.message_handler)
-        self.client.activate_ipc_pubsub()
-        
-        # Subscribe to the topic
-        self.client.subscribe_to_topic("ipc", self.subscribe_topic)
+def message_handler(self, protocol, topic, message_id, status, route, message):
+    logger.info(f"Received message on {topic}: {message}")
 
-    def message_handler(self, protocol, topic, message_id, status, route, message):
-        logger.info(f"Received message on {topic}: {message}")
-
-    def publish_message(self):
-        while True:
-            message = {"message": "Hello World, from GreenGrassCore V2"}
-            self.client.publish_message("ipc", message, topic=self.publish_topic)
-            logger.info(f"Published message to {self.publish_topic}: {message}")
-            time.sleep(1)
 
 if __name__ == "__main__":
+    base_topic = "GGHW" # only used if no topic is provided to client.publish_message
+    subscribe_topic = "GGHelloWorld/inbox"
+    publish_topic = "GGHelloWorld/outbox"
+
+    # Initialize MQTT client
+    client = AwsGreengrassPubSubSdkClient(base_topic=base_topic, default_message_handler=message_handler)
+    client.activate_mqtt_pubsub()
+        
+    # Subscribe to the MQTT topic
+    client.subscribe_to_topic("mqtt", subscribe_topic)
+
     try:
-        config_str = sys.argv[1]
-        config = json.loads(config_str)
-        component = GreenGrassV2HelloWorld(config)
-        component.publish_message()
+        while True:
+            message = {"message": "Hello World, from GreenGrassCore V2"}
+            client.publish_message("mqtt", message, topic=publish_topic)  # Publish using MQTT protocol
+            logger.info(f"Published hello world message to {publish_topic}: {message}")
+            time.sleep(5)
     except Exception as e:
         logger.error(f"Error running the component: {e}")
