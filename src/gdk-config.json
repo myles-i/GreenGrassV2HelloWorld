@@ -1,0 +1,17 @@
+{
+    "component": {
+      "GreenGrassV2HelloWorld": {
+        "author": "Myles Iribarne",
+        "version": "0.0.1",
+        "build": {
+          "build_system": "zip"
+        },
+        "publish": {
+          "bucket": "aws-greengrass-component-artifacts",
+          "region": "us-west-2"
+        }
+      }
+    },
+    "gdk_version": "1.0.0"
+  }
+  
