@@ -17,7 +17,7 @@ For a more complete framework with custom routes, default egress/ingress topics,
 ```
 # Clone this GIT Repository
 MY_COMPONENT_NAME=GreenGrassV2HelloWorld
-git clone ############ ${MY_COMPONENT_NAME}
+git clone https://github.com/myles-i/GreenGrassV2HelloWorld.git ${MY_COMPONENT_NAME}
 
 cd ${MY_COMPONENT_NAME}/src
 ```
