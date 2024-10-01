@@ -22,9 +22,9 @@ class MyAwsGreengrassV2Component():
         # Expose the client methods as class methods
         self.subscribe_to_topic  = self.client.subscribe_to_topic
 
-    def publish_message(self, protocol, message, topic=None):
+    def publish_message(self, message, topic=None):
         sdk_message = self.message_formatter.get_message(message=message)
-        self.client.publish_message('ipc_mqtt', sdk_message, topic=publish_topic)  # Publish using MQTT and IPC protocol
+        self.client.publish_message('ipc_mqtt', sdk_message, topic=topic)  # Publish using MQTT and IPC protocol
         return sdk_message
     def message_handler(self, protocol, topic, message_id, status, route, message_payload):
         logger.info(f"Received message on {topic}: {message_payload}")
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     try:
         while True:
             message = {"user_msg": "Hello World, from GreenGrassCore V2"}
-            sdk_message = client.publish_message('ipc_mqtt', message, topic=publish_topic)  # Publish using MQTT and IPC protocol
+            sdk_message = client.publish_message( message, topic=publish_topic)  # Publish using MQTT and IPC protocol
             logger.info(f"Published sdk message to {publish_topic}: {sdk_message}")
             time.sleep(5)
     except Exception as e:
